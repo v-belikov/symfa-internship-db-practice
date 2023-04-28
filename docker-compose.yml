@@ -1,0 +1,50 @@
+# Use root/password as user/password credentials (.env)
+
+version: '3.1'
+
+services:
+  mysql:
+    image: mysql:8
+    # NOTE: use of "mysql_native_password" is not recommended: https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password
+    # (this is just an example, not intended to be a production configuration)
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    volumes:
+      - ./dumps:/var/lib/dumps
+    environment:
+      - MYSQL_ROOT_PASSWORD
+    ports:
+      - '3306:3306'
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8088:8080
+  mongo:
+    image: mongo:6
+    restart: always
+    volumes:
+      - ./dumps/northwind_mongodb:/var/lib/dumps
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME
+      - MONGO_INITDB_ROOT_PASSWORD
+    ports:
+      - '27017-27019:27017-27019'
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8089:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      ME_CONFIG_MONGODB_URL: mongodb://$MONGO_INITDB_ROOT_USERNAME:$MONGO_INITDB_ROOT_PASSWORD@mongo:27017/
+
+
+# Restore MySql database from the dump located in ./dumps/northwind.sql
+# sudo docker exec -i practice-mysql-1 sh -c 'exec mysql -uroot -p$MYSQL_ROOT_PASSWORD < /var/lib/dumps/northwind.sql'
+# Where practice-mysql-1 is mysql service name by default ( see docker-compose ps )
+
+# Restore MongoDB database from the dump located in ./dumps/northwind_mongodb
+# sudo docker exec practice-mongo-1 sh -c 'exec mongorestore --drop -u$MONGO_INITDB_ROOT_USERNAME -p$MONGO_INITDB_ROOT_PASSWORD /var/lib/dumps'
+# Where practice-mongo-1 is mysql service name by default ( see docker-compose ps )
